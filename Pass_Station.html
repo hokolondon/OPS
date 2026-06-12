@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Pass Station · Daily Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --s: 1; }
+    @media (min-width: 500px) { :root { --s: 1.5; } }
+    @media (min-width: 900px) { :root { --s: 2; } }
+    html { font-size: calc(16px * var(--s)); }
+    body { font-family: "Roboto Condensed", sans-serif; background: #fff; color: #000; max-width: calc(402px * var(--s)); margin: 0 auto; padding: 0 0 5rem; }
+
+    .header { text-align: center; padding: 1.375rem 1.25rem .875rem; }
+    .logo { width: 9.8rem; height: 2.75rem; object-fit: contain; display: block; margin: 0 auto; }
+    .daily-ops { font-weight: 900; font-size: .5625rem; letter-spacing: .72em; color: #F93B1D; text-transform: uppercase; margin-top: .3rem; padding-right: .72em; }
+
+    .station-wrap { padding: .875rem 3.2rem 0; }
+    .station-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .station-name { font-weight: 700; font-size: .75rem; color: #F93B1D; letter-spacing: .08em; }
+    .lang-btn { background: none; border: .5px solid #F93B1D; border-radius: 3px; padding: .15rem .4rem; cursor: pointer; font-family: inherit; font-size: .4rem; font-weight: 700; letter-spacing: .06em; color: #F93B1D; text-transform: uppercase; transition: background .15s, color .15s; }
+    .lang-btn:hover { background: #F93B1D; color: #fff; }
+    .station-line { border-top: 1px solid #F93B1D; }
+
+    .toggle-wrap { display: flex; margin: .875rem 3.2rem 0; border: 1px solid #F93B1D; overflow: hidden; }
+    .toggle-btn { flex: 1; padding: .5rem 0; font-family: inherit; font-size: .625rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border: none; background: transparent; cursor: pointer; color: #999; transition: all .15s; }
+    .toggle-btn.active { background: #F93B1D; color: #fff; }
+    .toggle-btn:not(:first-child) { border-left: 1px solid #F93B1D; }
+    .time-ref { font-size: .4375rem; color: #BBB; text-align: center; margin: .25rem 3.2rem 0; letter-spacing: .08em; }
+
+    .section { padding: .75rem 3.2rem 0; }
+    .section-header { display: flex; align-items: center; gap: .375rem; margin-bottom: .625rem; }
+    .section-label { font-weight: 700; font-size: .75rem; color: #F93B1D; white-space: nowrap; }
+    .section-rule { flex: 1; border-top: .5px solid #F93B1D; opacity: .4; }
+
+    .timeline { position: relative; padding-left: 2.75rem; }
+    .tl-item { position: relative; margin-bottom: .625rem; }
+    .tl-item::before { content: ""; position: absolute; left: -1.125rem; top: .8rem; bottom: -.625rem; border-left: .8px solid #F93B1D; z-index: 0; }
+    .tl-item:last-child::before { display: none; }
+    .tl-time { position: absolute; right: calc(100% + .5rem); top: .4375rem; width: 2.4rem; font-weight: 700; font-size: .42rem; color: #F93B1D; text-align: right; white-space: nowrap; z-index: 2; background: #fff; line-height: 1.3; }
+
+    .card { background: rgba(245,245,245,.54); border: .5px solid #F93B1D; border-radius: 5px; padding: .5rem .625rem; position: relative; z-index: 1; }
+    .card-title { font-weight: 700; font-size: .5rem; line-height: .5625rem; color: #F93B1D; margin-bottom: .3rem; }
+    .card-body { font-weight: 500; font-size: .375rem; line-height: .5625rem; color: #000; }
+    .card-item { margin-bottom: .125rem; }
+    .card-item.warn { color: #F93B1D; }
+    .card-item.note { color: #888; font-style: italic; }
+
+    /* sub-cards */
+    .sub-cards { display: flex; flex-direction: column; gap: 4px; margin-top: 3px; }
+    .sub-card { border: 0.5px solid rgba(249,59,29,0.35); border-radius: 3px; overflow: hidden; }
+    .sub-header { display: flex; align-items: center; justify-content: space-between; background: rgba(249,59,29,0.07); padding: 2px 6px; border-bottom: 0.5px solid rgba(249,59,29,0.25); }
+    .sub-name { font-weight: 700; font-size: 9px !important; color: #F93B1D; }
+    .sub-qty { font-size: 8px !important; color: #F93B1D; opacity: 0.75; }
+    .sub-body { padding: 3px 6px; font-size: 8.5px !important; color: #000; line-height: 13px !important; }
+
+    /* lang */
+    .card-title.zh { display: block; } .card-title.en { display: none; }
+    .lang-en .card-title.zh { display: none; } .lang-en .card-title.en { display: block; }
+    .card-item.zh { display: block; } .card-item.en { display: none; }
+    .lang-en .card-item.zh { display: none; } .lang-en .card-item.en { display: block; }
+    .section-label.zh { display: block; } .section-label.en { display: none; }
+    .lang-en .section-label.zh { display: none; } .lang-en .section-label.en { display: block; }
+    .sub-name.zh { display: block; } .sub-name.en { display: none; }
+    .lang-en .sub-name.zh { display: none; } .lang-en .sub-name.en { display: block; }
+    .sub-body.zh { display: block; } .sub-body.en { display: none; }
+    .lang-en .sub-body.zh { display: none; } .lang-en .sub-body.en { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <img class="logo" src="https://images.squarespace-cdn.com/content/v1/6044045ecacc5f3deb4792ea/926ddcee-8c67-481f-8ec1-66bac7273c59/weblogo_hoko+copy.png?format=1500w" alt="HOKO">
+  <div class="daily-ops">Daily Operations</div>
+</div>
+
+<div class="station-wrap">
+  <div class="station-row">
+    <div class="station-name">PASS STATION</div>
+    <button class="lang-btn" id="lang-btn" onclick="toggleLang()">EN</button>
+  </div>
+  <div class="station-line"></div>
+</div>
+
+<div class="toggle-wrap">
+  <button class="toggle-btn active" id="btn-wd" onclick="setMode('wd')">Weekday</button>
+  <button class="toggle-btn" id="btn-we" onclick="setMode('we')">Weekend</button>
+</div>
+<div class="time-ref">Times for reference only</div>
+
+
+<!-- ══ WEEKEND OPENING ══ -->
+<div class="section we-note">
+  <div class="section-header">
+    <span class="section-label zh">Opening（週末 08:00 – 09:00）</span>
+    <span class="section-label en">Opening (Weekend 08:00 – 09:00)</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time">All Day</div>
+      <div class="card">
+        <div class="card-title zh">廠商來貨時幫手搬貨</div>
+        <div class="card-title en">Help Unload Supplier Deliveries</div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0800</div>
+      <div class="card">
+        <div class="card-title zh">開啟電源</div>
+        <div class="card-title en">Turn On Equipment</div>
+        <div class="card-body">
+          <div class="card-item zh">煎台（180–220℃）、煮麵爐（P9 煮滾後轉 P4）、電飯鍋、電磁爐、iPad 插電</div>
+          <div class="card-item en">Grill (180–220℃), noodle cooker (P9 then P4 after boil), rice cooker, induction hob, iPad charging</div>
+          <div class="card-item note zh">煎台加熱後四邊會浮出髒污，倒一點油將髒污刮除擦乾淨後再開始使用</div>
+          <div class="card-item note en">After grill heats up, oil residue will appear on edges — scrape clean before use</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0800</div>
+      <div class="card">
+        <div class="card-title zh">預熱食物</div>
+        <div class="card-title en">Heat Up Bain Marie Items</div>
+        <div class="card-body">
+          <div class="card-item zh">定期攪拌防底部燒焦，達 75℃ 後放入保溫爐</div>
+          <div class="card-item en">Stir regularly to prevent burning; place in bain marie once 75℃</div>
+        </div>
+        <div class="sub-cards">
+          <div class="sub-card">
+            <div class="sub-header">
+              <span class="sub-name zh">沙嗲牛肉</span><span class="sub-name en">Satay Beef</span>
+              <span class="sub-qty">⅓ GN · 4L</span>
+            </div>
+            <div class="sub-body zh">牛肉＋沙嗲醬，黑色不沾鍋，6檔火力，煮好後倒入 ⅓ GN</div>
+            <div class="sub-body en">Beef + satay sauce, black non-stick pan, heat 6, pour into ⅓ GN</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header">
+              <span class="sub-name zh">雞湯 × 2</span><span class="sub-name en">Chicken Soup × 2</span>
+              <span class="sub-qty">⅓ GN</span>
+            </div>
+            <div class="sub-body zh">最大火煮滾，加入湯底攪拌均勻，轉6檔再次煮滾後放入保溫爐</div>
+            <div class="sub-body en">Boil on max heat, add soup base, stir, reduce to heat 6, re-boil then bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header">
+              <span class="sub-name zh">番茄湯</span><span class="sub-name en">Tomato Soup</span>
+              <span class="sub-qty">⅓ GN</span>
+            </div>
+            <div class="sub-body zh">最大火煮滾，加入湯底攪拌均勻，防止底部燒焦</div>
+            <div class="sub-body en">Boil on max heat, add soup base, stir to prevent burning</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header">
+              <span class="sub-name zh">奶油玉米</span><span class="sub-name en">Buttered Corn</span>
+              <span class="sub-qty">⅙ GN</span>
+            </div>
+            <div class="sub-body zh">4 罐甜玉米 ＋ 1 塊奶油 ＋ 洋蔥粉 ＋ 蒜粉 ＋ 味精，銀色平鍋加熱</div>
+            <div class="sub-body en">4 cans corn + 1 butter block + onion powder + garlic powder + MSG, silver flat pan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0800</div>
+      <div class="card">
+        <div class="card-title zh">預熱醬汁</div>
+        <div class="card-title en">Heat Up Sauces</div>
+        <div class="sub-cards">
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">叉燒汁</span><span class="sub-name en">Char Siu Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出，將上層油脂撈出再放入保溫爐</div>
+            <div class="sub-body en">Take from fridge, skim top layer of fat before placing in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">黑椒汁</span><span class="sub-name en">Black Pepper Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出直接放入保溫爐，1小時後攪拌，確認溫度 75–80℃，不足需倒鍋加熱</div>
+            <div class="sub-body en">From fridge to bain marie directly; stir after 1hr, check 75–80℃, reheat if needed</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">甜醬油</span><span class="sub-name en">Sweet Soy Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">前一天應補充好，直接放入保溫爐</div>
+            <div class="sub-body en">Should be topped up the day before; place directly in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">撈麵汁</span><span class="sub-name en">Lo Mein Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">前一天應補充好，直接放入保溫爐</div>
+            <div class="sub-body en">Should be topped up the day before; place directly in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">奶油</span><span class="sub-name en">Butter</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出放入保溫爐，融化後放回 [For 滑蛋] [For 豬包] 位置</div>
+            <div class="sub-body en">From fridge to bain marie; once melted, return to [scrambled egg] [pork bun] positions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0815</div>
+      <div class="card">
+        <div class="card-title zh">Walk-in Fridge 取出</div>
+        <div class="card-title en">Retrieve from Walk-in Fridge</div>
+        <div class="card-body">
+          <div class="card-item zh">豬包 × 2、撈麵 × 2、通粉 × 2、雞翅 × 2、叉燒 × 2、豆腐 × 2、炒洋蔥 × 2、火腿(絲) × 2、蔥油 × 2、蔥花 × 2、雞蛋 × 4底、西多士奶油 × 2、Cream Cheese × 1–2</div>
+          <div class="card-item en">Pork bun ×2, lo mein ×2, macaroni ×2, chicken wings ×2, char siu ×2, tofu ×2, sautéed onion ×2, ham strips ×2, scallion oil ×2, scallion ×2, eggs ×4 trays, French toast butter ×2, Cream Cheese ×1–2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0820</div>
+      <div class="card">
+        <div class="card-title zh">叉燒放入烤箱</div>
+        <div class="card-title en">Place Char Siu in Oven</div>
+        <div class="card-body">
+          <div class="card-item zh">第一批最晚 08:30 要入烤箱，第二批應在開門後 20 分鐘內出爐</div>
+          <div class="card-item en">First batch in oven by 08:30; second batch should be out within 20 min of opening</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0830</div>
+      <div class="card">
+        <div class="card-title zh">塗抹花生醬西多士 × 1箱；準備西多蛋漿和蛋冰</div>
+        <div class="card-title en">Spread Peanut Butter Toast × 1 box; Prep French Toast Egg Mix &amp; Ice</div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0845</div>
+      <div class="card">
+        <div class="card-title zh">擺放出餐用具；準備叉燒台</div>
+        <div class="card-title en">Set Out Service Tools; Set Up Char Siu Station</div>
+        <div class="card-body">
+          <div class="card-item zh">叉燒保溫箱、滑蛋蛋漿、滑蛋鍋、融化奶油、砧板、刀、電子秤、夾子、手套</div>
+          <div class="card-item en">Char siu warmer, scrambled egg mix, egg pan, melted butter, chopping board, knife, scale, tongs, gloves</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">0850</div>
+      <div class="card">
+        <div class="card-title zh">補充外賣盒；DS 試味</div>
+        <div class="card-title en">Restock Takeaway Containers; DS Taste Test</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ WEEKDAY OPENING / MORNING PREP ══ -->
+<div class="section wd-note">
+  <div class="section-header">
+    <span class="section-label zh">Morning Prep（平日 10:00 – 12:00）</span>
+    <span class="section-label en">Morning Prep (Weekday 10:00 – 12:00)</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time">All Day</div>
+      <div class="card">
+        <div class="card-title zh">廠商來貨時幫手搬貨</div>
+        <div class="card-title en">Help Unload Supplier Deliveries</div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1000</div>
+      <div class="card">
+        <div class="card-title zh">開啟電源</div>
+        <div class="card-title en">Turn On Equipment</div>
+        <div class="card-body">
+          <div class="card-item zh">煎台（180–220℃）、煮麵爐（P9 煮滾後轉 P4）、電飯鍋、電磁爐、iPad 插電</div>
+          <div class="card-item en">Grill (180–220℃), noodle cooker (P9 then P4 after boil), rice cooker, induction hob, iPad charging</div>
+          <div class="card-item note zh">煎台加熱後四邊會浮出髒污，倒一點油將髒污刮除擦乾淨後再開始使用</div>
+          <div class="card-item note en">After grill heats up, oil residue will appear on edges — scrape clean before use</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1000</div>
+      <div class="card">
+        <div class="card-title zh">預熱食物</div>
+        <div class="card-title en">Heat Up Bain Marie Items</div>
+        <div class="card-body">
+          <div class="card-item zh">定期攪拌防底部燒焦，達 75℃ 後放入保溫爐</div>
+          <div class="card-item en">Stir regularly to prevent burning; place in bain marie once 75℃</div>
+        </div>
+        <div class="sub-cards">
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">沙嗲牛肉</span><span class="sub-name en">Satay Beef</span><span class="sub-qty">⅓ GN · 2L</span></div>
+            <div class="sub-body zh">牛肉＋沙嗲醬，黑色不沾鍋，6檔火力，煮好後倒入 ⅓ GN</div>
+            <div class="sub-body en">Beef + satay sauce, black non-stick pan, heat 6, pour into ⅓ GN</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">雞湯</span><span class="sub-name en">Chicken Soup</span><span class="sub-qty">⅓ GN</span></div>
+            <div class="sub-body zh">最大火煮滾，加入湯底攪拌均勻，轉6檔再次煮滾後放入保溫爐</div>
+            <div class="sub-body en">Boil on max heat, add soup base, stir, reduce to heat 6, re-boil then bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">羅宋湯</span><span class="sub-name en">Borscht</span><span class="sub-qty">⅓ GN</span></div>
+            <div class="sub-body zh">最大火煮滾，加入湯底，煮至 11:45 再放入保溫爐並加檸檬汁調味</div>
+            <div class="sub-body en">Boil on max heat, add soup base, cook until 11:45 then bain marie with lemon juice seasoning</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">咖喱汁</span><span class="sub-name en">Curry Sauce</span><span class="sub-qty">⅓ GN</span></div>
+            <div class="sub-body zh">銀色湯鍋，量咖喱醬 4L，5檔火力，煮沸達 75℃ 後按 SOP 加椰奶和淡奶，攪拌倒入 ⅓ GN</div>
+            <div class="sub-body en">Silver pot, measure 4L curry paste, heat 5, boil to 75℃ then add coconut milk &amp; evaporated milk per SOP, stir and pour into ⅓ GN</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1000</div>
+      <div class="card">
+        <div class="card-title zh">預熱醬汁</div>
+        <div class="card-title en">Heat Up Sauces</div>
+        <div class="sub-cards">
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">叉燒汁</span><span class="sub-name en">Char Siu Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出，將上層油脂撈出再放入保溫爐</div>
+            <div class="sub-body en">Take from fridge, skim top layer of fat before placing in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">黑椒汁</span><span class="sub-name en">Black Pepper Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出直接放入保溫爐，1小時後攪拌，確認溫度 75–80℃</div>
+            <div class="sub-body en">From fridge to bain marie; stir after 1hr, check 75–80℃</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">甜醬油</span><span class="sub-name en">Sweet Soy Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">前一天應補充好，直接放入保溫爐</div>
+            <div class="sub-body en">Should be topped up the day before; place directly in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">撈麵汁</span><span class="sub-name en">Lo Mein Sauce</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">前一天應補充好，直接放入保溫爐</div>
+            <div class="sub-body en">Should be topped up the day before; place directly in bain marie</div>
+          </div>
+          <div class="sub-card">
+            <div class="sub-header"><span class="sub-name zh">奶油</span><span class="sub-name en">Butter</span><span class="sub-qty">⅙ GN</span></div>
+            <div class="sub-body zh">冰箱取出放入保溫爐，融化後放回 [For 滑蛋] [For 豬包] 位置</div>
+            <div class="sub-body en">From fridge to bain marie; once melted, return to positions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1020</div>
+      <div class="card">
+        <div class="card-title zh">確認 Prep List；Walk-in Fridge 取出食材</div>
+        <div class="card-title en">Check Prep List; Retrieve Ingredients from Walk-in</div>
+        <div class="card-body">
+          <div class="card-item zh">豆腐取出後在 KP 水槽倒水</div>
+          <div class="card-item en">After taking out tofu, add water in KP sink</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1020</div>
+      <div class="card">
+        <div class="card-title zh">確認 Pass Fridge；補充午餐食材</div>
+        <div class="card-title en">Check Pass Fridge; Restock Lunch Ingredients</div>
+        <div class="card-body">
+          <div class="card-item zh">雞翅 ×2、豆腐 ×2、炒洋蔥 ×2、火腿(絲) ×2、蔥油 ×2、蔥花 ×2、西多士奶油 ×2、Cream Cheese ×1–2、雞蛋 3–4底</div>
+          <div class="card-item en">Chicken wings ×2, tofu ×2, sautéed onion ×2, ham strips ×2, scallion oil ×2, scallion ×2, French toast butter ×2, Cream Cheese ×1–2, eggs 3–4 trays</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">煎豆腐</div>
+      <div class="card">
+        <div class="card-title zh">煎豆腐（約 30 分鐘）</div>
+        <div class="card-title en">Pan-fry Tofu (approx. 30 min)</div>
+        <div class="card-body">
+          <div class="card-item zh">豆腐對切翻轉後再對切，煎台 200℃，每面約 5 分鐘，兩面煎好後盛起大鐵盤放涼，冷卻後裝 2L 盒貼標放風房 (FIFO)</div>
+          <div class="card-item en">Halve tofu, flip and halve again; grill 200℃, ~5 min each side, cool on tray, store in 2L container with label in walk-in (FIFO)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">炒洋蔥</div>
+      <div class="card">
+        <div class="card-title zh">炒洋蔥（約 15 分鐘）</div>
+        <div class="card-title en">Sauté Onions (approx. 15 min)</div>
+        <div class="card-body">
+          <div class="card-item zh">翻炒至稍微金黃即可，放入 2L 盒貼標放風房 (FIFO)</div>
+          <div class="card-item en">Stir-fry until lightly golden, store in 2L container with label in walk-in (FIFO)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1100</div>
+      <div class="card">
+        <div class="card-title zh">確認煮飯情況；擺放補充出餐配料和用具</div>
+        <div class="card-title en">Check Rice; Set Out &amp; Top Up Service Condiments &amp; Tools</div>
+        <div class="card-body">
+          <div class="card-item zh">翻攪白飯讓底下的飯不會濕黏</div>
+          <div class="card-item en">Stir rice to prevent bottom from getting soggy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1130</div>
+      <div class="card">
+        <div class="card-title zh">擺放午餐出餐配料</div>
+        <div class="card-title en">Set Out Lunch Service Condiments</div>
+        <div class="card-body">
+          <div class="card-item zh">⅙ 蔥油、⅙ 蔥花、⅑ 炸蒜、⅑ 辣椒、⅑ 魷魚檸檬、⅑ 椒鹽粉/巴西里、⅙ 炒洋蔥、煉奶瓶</div>
+          <div class="card-item en">⅙ scallion oil, ⅙ scallion, ⅑ fried garlic, ⅑ chilli, ⅑ squid lemon, ⅑ pepper salt/parsley, ⅙ sautéed onion, condensed milk bottle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1145</div>
+      <div class="card">
+        <div class="card-title zh">Prep List 完成後清潔煎台</div>
+        <div class="card-title en">Clean Grill After Prep List Done</div>
+        <div class="card-body">
+          <div class="card-item zh">取冰塊倒上煎台刮除焦黑髒污，擦乾後重新上一層薄油</div>
+          <div class="card-item en">Pour ice on grill, scrape burnt residue, dry and re-oil</div>
+          <div class="card-item zh">將所有髒器具拿至 KP；補充外賣盒</div>
+          <div class="card-item en">Bring all dirty equipment to KP; restock takeaway containers</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1150</div>
+      <div class="card">
+        <div class="card-title zh">DS 試味</div>
+        <div class="card-title en">DS Taste Test</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ WEEKEND: BREAKFAST SERVICE & MID-MORNING PREP ══ -->
+<div class="section we-note">
+  <div class="section-header">
+    <span class="section-label zh">Breakfast Service &amp; Mid-Morning Prep（週末 10:00 – 12:00）</span>
+    <span class="section-label en">Breakfast Service &amp; Mid-Morning Prep (Weekend 10:00 – 12:00)</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time">0900–1130</div>
+      <div class="card">
+        <div class="card-title zh">出餐優先</div>
+        <div class="card-title en">Service First</div>
+        <div class="card-body">
+          <div class="card-item zh">隨時注意所有食材用量，如雞湯/牛肉等消耗較快</div>
+          <div class="card-item en">Monitor ingredient levels at all times, especially chicken soup/beef which run out fast</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1100</div>
+      <div class="card">
+        <div class="card-title zh">確認煮飯情況；確認 Pass Fridge 午餐食材</div>
+        <div class="card-title en">Check Rice; Check Pass Fridge for Lunch Ingredients</div>
+        <div class="card-body">
+          <div class="card-item zh">翻攪白飯讓底下的飯不會濕黏</div>
+          <div class="card-item en">Stir rice to prevent bottom from getting soggy</div>
+          <div class="card-item zh">雞翅 ×2、豆腐 ×2、炒洋蔥 ×2、火腿(絲) ×2、蔥油 ×2、蔥花 ×2、西多士奶油 ×2、Cream Cheese ×1–2、雞蛋 3–4底</div>
+          <div class="card-item en">Chicken wings ×2, tofu ×2, sautéed onion ×2, ham strips ×2, scallion oil ×2, scallion ×2, French toast butter ×2, Cream Cheese ×1–2, eggs 3–4 trays</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1130</div>
+      <div class="card">
+        <div class="card-title zh">確認煮飯；擺放午餐出餐配料</div>
+        <div class="card-title en">Check Rice; Set Out Lunch Condiments</div>
+        <div class="card-body">
+          <div class="card-item zh">⅙ 蔥油、⅙ 蔥花、⅑ 炸蒜、⅑ 辣椒、⅑ 魷魚檸檬、⅑ 椒鹽粉/巴西里、⅙ 炒洋蔥、煉奶瓶</div>
+          <div class="card-item en">⅙ scallion oil, ⅙ scallion, ⅑ fried garlic, ⅑ chilli, ⅑ squid lemon, ⅑ pepper salt/parsley, ⅙ sautéed onion, condensed milk bottle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1145</div>
+      <div class="card">
+        <div class="card-title zh">更換午餐 Menu；DS 試味</div>
+        <div class="card-title en">Switch to Lunch Menu; DS Taste Test</div>
+        <div class="card-body">
+          <div class="card-item zh">收走番茄湯、奶油玉米；換上羅宋湯、咖喱汁</div>
+          <div class="card-item en">Remove tomato soup &amp; buttered corn; bring out borscht &amp; curry sauce</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ LUNCH SERVICE & AFTERNOON ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-label zh">Lunch Service &amp; Afternoon（12:00 – 17:30）</span>
+    <span class="section-label en">Lunch Service &amp; Afternoon (12:00 – 17:30)</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time">1200</div>
+      <div class="card">
+        <div class="card-title zh">出餐優先</div>
+        <div class="card-title en">Service First</div>
+        <div class="card-body">
+          <div class="card-item zh">隨時注意所有食材/醬汁用量</div>
+          <div class="card-item en">Monitor all ingredient and sauce levels at all times</div>
+          <div class="card-item wd-note zh">平日尖峰時刻注意雞翅消耗，沙爹牛/咖喱汁/黑椒汁下午需留意</div>
+          <div class="card-item wd-note en">Weekday peak: watch chicken wing levels; monitor satay beef/curry/black pepper in afternoon</div>
+          <div class="card-item wd-note zh">不忙時完成剩下 Prep List</div>
+          <div class="card-item wd-note en">Complete remaining Prep List when quiet</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1500</div>
+      <div class="card">
+        <div class="card-title zh">確認當天 Deep Clean 任務</div>
+        <div class="card-title en">Confirm Today's Deep Clean Tasks</div>
+        <div class="card-body">
+          <div class="card-item zh">有空檔即可開始清潔</div>
+          <div class="card-item en">Begin cleaning during any quiet moments</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ SOFT CLOSE ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-label zh">Soft Close（平日 17:30 – 18:30｜週末 17:00 – 18:30）</span>
+    <span class="section-label en">Soft Close (WD 17:30–18:30 | WE 17:00–18:30)</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">1700</div>
+      <div class="tl-time we-note" style="display:none">1700</div>
+      <div class="card">
+        <div class="card-title zh">補充隔日開早使用食材/用品</div>
+        <div class="card-title en">Restock Next Day Opening Ingredients</div>
+        <div class="card-body">
+          <div class="card-item wd-note zh">牛肉 ×1 (2L，至少 2L)、沙嗲醬 ×1、雞湯 ×1、羅宋湯 ×1、咖喱汁 ×1（至少 4L）、奶油 4–7塊</div>
+          <div class="card-item wd-note en">Beef ×1 (2L, min 2L), satay sauce ×1, chicken soup ×1, borscht ×1, curry sauce ×1 (min 4L), butter 4–7 blocks</div>
+          <div class="card-item we-note zh">牛肉(2L) ×3（至少 2L）、沙嗲醬 ×1、雞湯 ×1、番茄湯 ×1、咖喱汁 ×1（至少 4L）、奶油 4–8塊（含奶油玉米用）</div>
+          <div class="card-item we-note en">Beef (2L) ×3 (min 2L), satay sauce ×1, chicken soup ×1, tomato soup ×1, curry sauce ×1 (min 4L), butter 4–8 blocks (incl. for buttered corn)</div>
+          <div class="card-item zh">撈麵汁（檢查是否足夠，不足開新的）</div>
+          <div class="card-item en">Lo mein sauce (check if sufficient, open new if needed)</div>
+          <div class="card-item zh">瑞士雞翼汁 ×2 ⅓（兩個 ⅓ 各倒入一半）</div>
+          <div class="card-item en">Swiss chicken wing sauce ×2 ⅓ (pour half into each ⅓ pan)</div>
+          <div class="card-item zh">煮麵水 ½</div>
+          <div class="card-item en">Noodle water ½</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">1730</div>
+      <div class="tl-time we-note" style="display:none">1700</div>
+      <div class="card">
+        <div class="card-title zh">提早關閉一個保溫爐</div>
+        <div class="card-title en">Turn Off One Bain Marie Early</div>
+        <div class="card-body">
+          <div class="card-item zh">雞湯/牛肉/咖喱用量剩一半時換 ⅙，將所有食物集中在一個保溫爐，關閉後方保溫爐</div>
+          <div class="card-item en">When chicken soup/beef/curry is half full, switch to ⅙, consolidate into one bain marie, turn off rear unit</div>
+          <div class="card-item zh">雞翅可集中在同一個 ⅓，另一個雞翅汁可暫放電磁爐或保溫至 19:00–19:30</div>
+          <div class="card-item en">Consolidate chicken wings into one ⅓ pan; keep remaining wing sauce on induction hob until 19:00–19:30</div>
+          <div class="card-item zh">撈麵醬汁可拿出放在撈麵爐旁</div>
+          <div class="card-item en">Move lo mein sauce next to noodle cooker</div>
+          <div class="card-item we-note warn zh">⚠ 週末需深層清潔保溫爐，關閉後即可開始清潔</div>
+          <div class="card-item we-note warn en">⚠ Weekend: deep clean bain marie after turning off</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1800</div>
+      <div class="card">
+        <div class="card-title zh">陸續收拾器具</div>
+        <div class="card-title en">Gradually Clear Equipment</div>
+        <div class="card-body">
+          <div class="card-item zh">將換下的 ⅓ 和蓋子等可不使用的器具拿至 KP 清洗</div>
+          <div class="card-item en">Send used ⅓ pans, lids and unused equipment to KP for washing</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">1800</div>
+      <div class="card">
+        <div class="card-title zh">可以開始 SOAP 部分區域</div>
+        <div class="card-title en">Begin SOAPing Some Areas</div>
+        <div class="card-body">
+          <div class="card-item zh">已關閉的保溫爐區域、白色洗手盆、煎台後方架子等</div>
+          <div class="card-item en">Turned-off bain marie area, white hand sink, shelf behind grill etc.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">1930</div>
+      <div class="tl-time we-note" style="display:none">1800</div>
+      <div class="card">
+        <div class="card-title zh">可以關閉第二個保溫爐</div>
+        <div class="card-title en">Turn Off Second Bain Marie</div>
+        <div class="card-body">
+          <div class="card-item zh">如不忙可將雞湯/雞翅/羅宋湯等放去電磁爐保溫，收店時可快速倒掉</div>
+          <div class="card-item en">If quiet, move chicken soup/wings/borscht to induction hob; easy to dispose at closing</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══ CLOSING ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-label">Closing</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">2000</div>
+      <div class="tl-time we-note" style="display:none">1830</div>
+      <div class="card">
+        <div class="card-title zh">倒掉剩餘食材</div>
+        <div class="card-title en">Discard Remaining Food</div>
+        <div class="card-body">
+          <div class="card-item zh">沙嗲牛肉、雞湯、雞翅、咖喱汁、叉燒汁、煮麵水</div>
+          <div class="card-item en">Satay beef, chicken soup, chicken wings, curry sauce, char siu sauce, noodle water</div>
+          <div class="card-item wd-note zh">羅宋湯</div>
+          <div class="card-item wd-note en">Borscht</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time"></div>
+      <div class="card">
+        <div class="card-title zh">保留與補充醬汁</div>
+        <div class="card-title en">Retain &amp; Top Up Sauces</div>
+        <div class="card-body">
+          <div class="card-item zh">甜醬油 — 至風房補充</div>
+          <div class="card-item en">Sweet soy sauce — top up from walk-in</div>
+          <div class="card-item zh">撈麵汁 — 照 SOP 補充</div>
+          <div class="card-item en">Lo mein sauce — top up per SOP</div>
+          <div class="card-item zh">黑椒汁 — 至風房補充</div>
+          <div class="card-item en">Black pepper sauce — top up from walk-in</div>
+          <div class="card-item zh">奶油 — 視乾淨程度與使用天數保留，無油脂則倒掉</div>
+          <div class="card-item en">Butter — keep based on cleanliness and days used; discard if no fat remains</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time"></div>
+      <div class="card">
+        <div class="card-title zh">收拾出餐配料和用具</div>
+        <div class="card-title en">Pack Up Service Condiments &amp; Tools</div>
+        <div class="card-body">
+          <div class="card-item zh">煉奶瓶蓋/甜醬油/叉汁/蔥油勺需在樓上清洗，其餘皆在 KP</div>
+          <div class="card-item en">Condensed milk lid/sweet soy/char siu sauce/scallion oil ladle to be washed upstairs; rest at KP</div>
+          <div class="card-item zh">將所有器具拿至 KP 清潔；將豬包/撈麵放回風房</div>
+          <div class="card-item en">Bring all equipment to KP for cleaning; return pork bun/lo mein to walk-in</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">2000–2030</div>
+      <div class="tl-time we-note" style="display:none">1830–1900</div>
+      <div class="card">
+        <div class="card-title zh">清潔煎台</div>
+        <div class="card-title en">Clean Grill</div>
+        <div class="card-body">
+          <div class="card-item zh">收店前 10 分鐘將火力調至 180℃，倒入冰塊降溫，刮除表層油脂和髒污，倒掉集油槽的水</div>
+          <div class="card-item en">10 min before closing, reduce to 180℃, pour in ice to cool, scrape off grease and residue, drain grease trap</div>
+          <div class="card-item zh">煎台降溫至 100℃ 以下，倒入洗爐水均勻覆蓋 5–10 分鐘，變成一層膜後開始刮除</div>
+          <div class="card-item en">Once below 100℃, pour grill cleaner evenly, leave 5–10 min until film forms, then scrape off</div>
+          <div class="card-item zh">集油槽仍有流入洗爐水，再次倒入有污垢的區域，刮乾淨後等煎台完全不熱再倒水/冰</div>
+          <div class="card-item en">Grease trap still filling — reapply cleaner to dirty spots, scrape clean, wait until fully cooled before adding water/ice</div>
+          <div class="card-item zh">一邊倒水一邊用細刷/鋼絲球清潔邊角，每次倒水後倒掉集油槽水，倒至水透明無色</div>
+          <div class="card-item en">Scrub edges with fine brush/steel wool while adding water; drain after each pour; continue until water runs clear</div>
+          <div class="card-item zh">藍紙擦乾煎台表面；外側按鈕 SOAP 清潔</div>
+          <div class="card-item en">Dry grill surface with blue paper; SOAP clean exterior buttons</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time"></div>
+      <div class="card">
+        <div class="card-title zh">拿所有已洗淨的器具回來並擺放歸位</div>
+        <div class="card-title en">Return All Cleaned Equipment &amp; Put Away</div>
+        <div class="card-body">
+          <div class="card-item zh">清潔/整理並擺好 Pass 儲物區域，分類各個大小 GN Pan</div>
+          <div class="card-item en">Clean and organise Pass storage area; sort all GN pan sizes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time wd-note">2030–2100</div>
+      <div class="tl-time we-note" style="display:none">1900–1930</div>
+      <div class="card">
+        <div class="card-title zh">最後確認 Closing Checklist，完成剩下任務</div>
+        <div class="card-title en">Final Check of Closing Checklist</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+  <script>
+    function setMode(m) {
+      var isWd = m === "wd";
+      document.getElementById("btn-wd").className = "toggle-btn" + (isWd ? " active" : "");
+      document.getElementById("btn-we").className = "toggle-btn" + (!isWd ? " active" : "");
+      document.querySelectorAll(".wd-note").forEach(function(el){ el.style.display = isWd ? "" : "none"; });
+      document.querySelectorAll(".we-note").forEach(function(el){ el.style.display = isWd ? "none" : ""; });
+    }
+    setMode("wd");
+
+    var isEn = false;
+    function toggleLang() {
+      isEn = !isEn;
+      document.body.classList.toggle("lang-en", isEn);
+      document.getElementById("lang-btn").textContent = isEn ? "CHI" : "EN";
+    }
+  </script>
+
+</body>
+</html>
